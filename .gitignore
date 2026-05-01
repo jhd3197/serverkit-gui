@@ -10,8 +10,12 @@ env/
 .DS_Store
 Thumbs.db
 node_modules/
-dist/
 build/
 *.log
 .vscode/
 .idea/
+
+# Built plugin bundles — produced by scripts/build-zip.{ps1,sh}
+dist/
+*.zip
+
