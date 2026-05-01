@@ -1,40 +1,52 @@
 # ServerKit GUI
 
-Streaming desktop view for ServerKit-managed servers.
+The first official ServerKit extension. Adds a "Desktop" view for any managed
+server: a live screenshot stream when the host has a display, or a *synthetic
+desktop* rendered from agent data when it doesn't.
 
-This is the **first official ServerKit extension**. It adds a live "Desktop" tab
-to the server detail page that streams screenshots from the agent. Hosts without
-a graphical session fall back to a synthetic desktop rendered from agent data
-(services as windows, processes as a taskbar, mounts as drives).
-
-## How it works
+## How it fits together
 
 ```
 Browser  ── HTTP poll ──▶  ServerKit panel  ── send_command ──▶  Agent
-   ▲                            │                                   │
-   │                            │                                   ▼
-   └────── PNG frame ◀── agent response ◀──────────  capture screen
+                              │ (extension blueprint)              │ (gui SDK)
+                              ▼                                    ▼
+                          /api/v1/server-gui/...        gui:screenshot / gui:capabilities
 ```
 
-1. The frontend polls `GET /api/v1/server-gui/<server_id>/frame` every ~700ms.
-2. The panel translates that into an `agent_registry.send_command(server_id, "gui:screenshot")`.
-3. The agent runs the platform-specific capture path:
-   - **Windows**: `Graphics.CopyFromScreen` (PowerShell shim) or native GDI (`agent/screenshot_windows.go`).
-   - **Linux/X11**: `scrot` / `import` / `gnome-screenshot`.
-   - **Linux/Wayland**: `grim`.
-   - **Headless**: returns `{"capability":"none"}` — frontend renders synthetic UI.
-4. Returned PNG is base64-encoded in the response so it can be `<img src="data:image/png;...">`.
+This extension is **panel-side only**. It does not ship binaries to agents and
+does not require a custom agent build. It calls the standard `gui:*` actions
+that the main ServerKit agent exposes natively (since v0.4.0), the same way
+existing features call `docker:*` or `system:*`.
+
+The agent's GUI SDK is intentionally small: capability probing and a single
+encoded frame per call. Anything more elaborate (mode switching, session
+recording, mouse passthrough) is the extension's responsibility — we just
+build on the bridge.
+
+## Modes
+
+The extension exposes two co-equal viewing modes per server:
+
+| Mode         | When it works                              | What you see                                   |
+|--------------|--------------------------------------------|------------------------------------------------|
+| `screenshot` | Host has a display server (Win session, X11, Wayland) | Live remote desktop, ~1.5 fps |
+| `synthetic`  | Always                                     | OS-style UI rendered from agent data — services as windows, processes as a taskbar, mounts as drives |
+| `auto`       | Default                                    | Prefers `screenshot`, falls back to `synthetic` |
+
+`synthetic` is **not** just a fallback. On a headless production box it's the
+primary view: a glanceable, OS-themed dashboard that turns "this server is a
+black box" into "this server has a face."
 
 ## Install
 
-From the panel UI:
+Panel UI:
 
 ```
 Settings → Plugins → Install from URL
 https://github.com/jhd3197/serverkit-gui
 ```
 
-Or via API:
+API:
 
 ```bash
 curl -X POST $PANEL/api/v1/plugins/install \
@@ -43,49 +55,58 @@ curl -X POST $PANEL/api/v1/plugins/install \
   -d '{"url":"https://github.com/jhd3197/serverkit-gui"}'
 ```
 
-After install, restart the panel **and** rebuild the frontend (`npm run build`)
-so Vite picks up `frontend/src/plugins/serverkit-gui/`.
+After install, restart the panel and `npm run build` the frontend so Vite
+picks up `frontend/src/plugins/serverkit-gui/`.
 
 ## Agent requirement
 
-The agent must implement two actions: `gui:capabilities` and `gui:screenshot`.
-A reference Go implementation lives in `agent/` — drop it into
-`ServerKit/agent/internal/capabilities/gui/` and register it in the agent's
-action dispatcher.
+Agents **≥ v0.4.0** ship the `gui:*` actions natively — no further work needed.
+On older agents the extension still loads: `gui:capabilities` returns "none"
+and the synthetic mode takes over.
 
-If the agent does not yet handle these actions the plugin still loads — the UI
-shows the synthetic desktop fallback and a banner explaining the agent needs
-upgrading.
+The agent SDK lives at `ServerKit/agent/internal/gui/`. If you're hacking the
+agent and want to add e.g. multi-monitor capture or input proxying, that's the
+file to edit. The contract returned to the panel:
+
+```json
+{
+  "image_base64": "<b64 jpeg/png>",
+  "format": "jpeg",
+  "width": 1440,
+  "height": 810,
+  "captured_at": "2026-05-01T12:34:56Z"
+}
+```
 
 ## Configuration
 
-Per-server settings live in the plugin tab:
+Per-server, controlled from the toolbar of the Desktop view:
 
-| Setting          | Default | Notes                                           |
-|------------------|---------|-------------------------------------------------|
-| Frame rate       | 1.5 fps | Capped at 5 fps to keep network/CPU sane        |
-| JPEG quality     | 70      | Higher = sharper + bigger frames                |
-| Scale            | 0.75    | Server-side downscale before encoding           |
-| Show synthetic   | auto    | `auto` / `always` / `never`                     |
+| Setting       | Default | Notes                                        |
+|---------------|---------|----------------------------------------------|
+| Mode          | auto    | auto / screenshot / synthetic                |
+| Frame rate    | 1.5 fps | Capped at 5 fps                              |
+| Quality       | 70      | JPEG; ignored for PNG                        |
+| Scale         | 0.75    | Server-side downscale before encoding        |
 
 ## Security
 
-- Screenshots are sensitive. Only users with the
-  `agent.command:gui:screenshot` permission can view frames.
-- Frames are not persisted on the panel — they pass through memory only.
-- The agent action checks the calling user has an active session before
-  capturing on Windows (no capture from logged-out machines unless explicitly
-  allowed).
+- Frames are not persisted by the panel — they pass through memory only.
+- The extension's routes inherit ServerKit's JWT auth and the existing
+  `agent.command:*` permission model.
+- On Windows, capture relies on an active user session. Hosts with no
+  interactive login report `capability=none` and degrade to synthetic mode.
 
 ## Roadmap
 
 - [x] Plugin scaffold + manifest
 - [x] Panel blueprint
-- [x] Frontend streaming component
-- [x] Agent capability stub (Go)
-- [ ] Mouse/keyboard input proxying (Phase 2)
-- [ ] WebSocket transport for sub-second frames (Phase 2)
-- [ ] WebRTC for full RDP-grade interactivity (Phase 3)
+- [x] Frontend streaming component + synthetic desktop
+- [x] Agent SDK landed in main ServerKit (`agent/internal/gui/`)
+- [ ] Per-server mode toggle (screenshot / synthetic / auto) — in progress
+- [ ] Input proxying (mouse / keyboard) — Phase 2
+- [ ] Native fast-path for Windows (replace PowerShell shell-out) — Phase 2
+- [ ] WebRTC for full RDP-grade interactivity — Phase 3
 
 ## License
 

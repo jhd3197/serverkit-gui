@@ -11,10 +11,11 @@
   "entry_point": "blueprint:gui_bp",
   "url_prefix": "/api/v1/server-gui",
   "frontend_entry": "components/ServerGui.jsx",
-  "agent_actions": [
+  "requires_agent_actions": [
     "gui:screenshot",
     "gui:capabilities"
   ],
+  "minimum_agent_version": "0.4.0",
   "permissions": [
     "agent.command:gui:screenshot",
     "agent.command:gui:capabilities"

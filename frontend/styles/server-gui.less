@@ -109,6 +109,53 @@
         border-radius: 6px;
     }
 
+    &__mode {
+        display: inline-flex;
+        gap: 0;
+        background: @sk-border;
+        border-radius: 6px;
+        overflow: hidden;
+        padding: 2px;
+    }
+
+    &__mode-btn {
+        padding: 4px 12px;
+        background: transparent;
+        border: none;
+        color: @sk-muted;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        border-radius: 4px;
+
+        &:hover:not(:disabled) { color: @sk-fg; }
+        &:disabled { opacity: 0.4; cursor: not-allowed; }
+        &--active {
+            background: @sk-accent;
+            color: #fff;
+        }
+    }
+
+    &__cap-active {
+        color: @sk-accent;
+        font-weight: 600;
+    }
+
+    &__viewport-btn {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 2;
+        padding: 4px 10px;
+        background: rgba(0, 0, 0, 0.6);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        &:hover { background: rgba(0, 0, 0, 0.8); }
+    }
+
     &__cap {
         font-family: ui-monospace, monospace;
         font-size: 12px;
