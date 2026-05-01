@@ -1,0 +1,22 @@
+{
+  "name": "serverkit-gui",
+  "display_name": "Server GUI",
+  "version": "0.1.0",
+  "description": "Streaming desktop view for managed servers. Live screenshots of Windows/Linux machines, with a synthetic desktop fallback for headless hosts.",
+  "author": "Juan Denis",
+  "homepage": "https://github.com/jhd3197/serverkit-gui",
+  "repository": "https://github.com/jhd3197/serverkit-gui",
+  "license": "MIT",
+  "category": "monitoring",
+  "entry_point": "blueprint:gui_bp",
+  "url_prefix": "/api/v1/server-gui",
+  "frontend_entry": "components/ServerGui.jsx",
+  "agent_actions": [
+    "gui:screenshot",
+    "gui:capabilities"
+  ],
+  "permissions": [
+    "agent.command:gui:screenshot",
+    "agent.command:gui:capabilities"
+  ]
+}
