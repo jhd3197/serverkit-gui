@@ -10,7 +10,8 @@
   "category": "monitoring",
   "entry_point": "blueprint:gui_bp",
   "url_prefix": "/api/v1/server-gui",
-  "frontend_entry": "components/ServerGui.jsx",
+  "frontend_entry": "dist/index.mjs",
+  "sdk_version": "^1.0.0",
   "requires_agent_actions": [
     "gui:screenshot",
     "gui:capabilities",

@@ -1,8 +1,12 @@
-# ServerKit GUI
+# ServerKit Agent GUI
 
-The first official ServerKit extension. Adds a "Desktop" view for any managed
-server: a live screenshot stream when the host has a display, or a *synthetic
-desktop* rendered from agent data when it doesn't.
+The first official ServerKit agent extension. Adds a "Desktop" view for any
+managed server: a live screenshot stream when the host has a display, or a
+*synthetic desktop* rendered from agent data when it doesn't.
+
+The package slug stays `serverkit-gui` for install compatibility, but the
+product name is **ServerKit Agent GUI** because the feature is powered by
+native `gui:*` actions on the ServerKit agent.
 
 ## How it fits together
 
@@ -100,6 +104,7 @@ Per-server, controlled from the toolbar of the Desktop view:
 ## Roadmap
 
 - [x] Plugin scaffold + manifest
+- [x] Marketplace-ready global widget contribution
 - [x] Panel blueprint
 - [x] Frontend streaming component + synthetic desktop
 - [x] Agent SDK landed in main ServerKit (`agent/internal/gui/`)
