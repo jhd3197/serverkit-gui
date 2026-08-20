@@ -1,0 +1,30 @@
+{
+    "gui": {
+        "serverGui": {
+            "05Fps": "0,5 fps",
+            "15Fps": "1,5 fps",
+            "1Fps": "1 fps",
+            "2Fps": "2 fps",
+            "3Fps": "3 fps",
+            "auto": "Automático",
+            "probingDisplayCapability": "Comprobando la capacidad de pantalla…",
+            "quality": "Calidad",
+            "rate": "Frecuencia",
+            "remoteDesktopFrame": "Fotograma del escritorio remoto",
+            "scale": "Escala",
+            "screenshot": "Captura",
+            "synthetic": "Sintético",
+            "unavailable": "No disponible: {{value}}",
+            "waitingForFirstFrame": "Esperando el primer fotograma…"
+        },
+        "serverGuiLauncher": {
+            "close": "Cerrar",
+            "desktop": "Escritorio",
+            "desktopView": "Vista de escritorio",
+            "openDesktopView": "Abrir la vista de escritorio"
+        },
+        "syntheticDesktop": {
+            "loadingSyntheticDesktop": "Cargando el escritorio sintético…"
+        }
+    }
+}
