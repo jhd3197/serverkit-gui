@@ -7,7 +7,7 @@
             "2Fps": "2 fps",
             "3Fps": "3 fps",
             "auto": "Automático",
-            "probingDisplayCapability": "Comprobando la capacidad de pantalla…",
+            "probingDisplayCapability": "Comprobando si hay pantalla disponible…",
             "quality": "Calidad",
             "rate": "Frecuencia",
             "remoteDesktopFrame": "Fotograma del escritorio remoto",
