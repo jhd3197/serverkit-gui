@@ -1,0 +1,30 @@
+{
+    "gui": {
+        "serverGui": {
+            "05Fps": "0.5 fps",
+            "15Fps": "1.5 fps",
+            "1Fps": "1 fps",
+            "2Fps": "2 fps",
+            "3Fps": "3 fps",
+            "auto": "Auto",
+            "probingDisplayCapability": "Probing display capability…",
+            "quality": "Quality",
+            "rate": "Rate",
+            "remoteDesktopFrame": "Remote desktop frame",
+            "scale": "Scale",
+            "screenshot": "Screenshot",
+            "synthetic": "Synthetic",
+            "unavailable": "Unavailable: {{value}}",
+            "waitingForFirstFrame": "Waiting for first frame…"
+        },
+        "serverGuiLauncher": {
+            "close": "Close",
+            "desktop": "Desktop",
+            "desktopView": "Desktop view",
+            "openDesktopView": "Open desktop view"
+        },
+        "syntheticDesktop": {
+            "loadingSyntheticDesktop": "Loading synthetic desktop…"
+        }
+    }
+}

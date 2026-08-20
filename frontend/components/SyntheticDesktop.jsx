@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useFormat, useTranslation } from 'serverkit-sdk';
 
 /**
  * Fake desktop UI rendered from agent data, used when the host has no
  * display server. Each "window" is just data the agent already exposes.
  */
 export default function SyntheticDesktop({ api, serverId, fetchJson }) {
+    const { t } = useTranslation();
+    const { formatTime } = useFormat();
     const [data, setData] = useState(null);
     const [error, setError] = useState(null);
 
@@ -21,7 +24,7 @@ export default function SyntheticDesktop({ api, serverId, fetchJson }) {
     }, [serverId, fetchJson]);
 
     if (error) return <div className="sk-gui__banner sk-gui__banner--error">{error}</div>;
-    if (!data) return <div className="sk-gui__loading">Loading synthetic desktop…</div>;
+    if (!data) return <div className="sk-gui__loading">{t('gui.syntheticDesktop.loadingSyntheticDesktop', 'Loading synthetic desktop…')}</div>;
 
     return (
         <div className="sk-synth">
@@ -40,7 +43,7 @@ export default function SyntheticDesktop({ api, serverId, fetchJson }) {
                     </span>
                 ))}
                 <span className="sk-synth__clock">
-                    {new Date().toLocaleTimeString()}
+                    {formatTime(new Date(), { seconds: true })}
                 </span>
             </div>
         </div>
