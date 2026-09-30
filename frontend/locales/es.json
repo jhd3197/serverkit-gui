@@ -25,6 +25,15 @@
         },
         "syntheticDesktop": {
             "loadingSyntheticDesktop": "Cargando el escritorio sintético…"
+        },
+        "surface": {
+            "unsupportedVersion": "Esta vista usa un formato que esta versión no puede mostrar.",
+            "cannotShowPart": "No se puede mostrar esta parte.",
+            "minimize": "Minimizar",
+            "confirmAction": "¿Ejecutar «{{title}}»?",
+            "cancel": "Cancelar",
+            "working": "Trabajando…",
+            "done": "Listo"
         }
     }
 }

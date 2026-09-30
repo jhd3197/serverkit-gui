@@ -1,94 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import { useFormat, useTranslation } from 'serverkit-sdk';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'serverkit-sdk';
+import SurfaceView from './SurfaceView.jsx';
+
+const MIN_REFRESH_MS = 2000;
+const DEFAULT_REFRESH_MS = 4000;
 
 /**
- * Fake desktop UI rendered from agent data, used when the host has no
- * display server. Each "window" is just data the agent already exposes.
+ * The server as a surface-v1 desktop, for hosts without a display. The
+ * backend builds the document from agent data (backend/surface.py); this
+ * component only polls it and hands it to SurfaceView.
  */
-export default function SyntheticDesktop({ api, serverId, fetchJson }) {
+export default function SyntheticDesktop({ serverId, fetchJson }) {
     const { t } = useTranslation();
-    const { formatTime } = useFormat();
-    const [data, setData] = useState(null);
+    const [surface, setSurface] = useState(null);
     const [error, setError] = useState(null);
+    const [reloadKey, setReloadKey] = useState(0);
 
+    const every = surface?.refresh?.every;
     useEffect(() => {
         let cancelled = false;
         const load = () => {
-            fetchJson(`/api/v1/server-gui/${serverId}/synthetic`)
-                .then(d => { if (!cancelled) setData(d); })
+            fetchJson(`/server-gui/${serverId}/surface`)
+                .then(d => { if (!cancelled) { setSurface(d); setError(null); } })
                 .catch(err => { if (!cancelled) setError(err.message); });
         };
         load();
-        const id = setInterval(load, 4000);
+        // The document's refresh is a floor: never poll faster than it asks.
+        const ms = Math.max(MIN_REFRESH_MS, every ? every * 1000 : DEFAULT_REFRESH_MS);
+        const id = setInterval(load, ms);
         return () => { cancelled = true; clearInterval(id); };
+    }, [serverId, fetchJson, every, reloadKey]);
+
+    const onAction = useCallback(async (actionId, input) => {
+        await fetchJson(`/server-gui/${serverId}/actions/${encodeURIComponent(actionId)}`, {
+            method: 'POST',
+            body: { input },
+        });
+        setReloadKey(k => k + 1);
     }, [serverId, fetchJson]);
 
-    if (error) return <div className="sk-gui__banner sk-gui__banner--error">{error}</div>;
-    if (!data) return <div className="sk-gui__loading">{t('gui.syntheticDesktop.loadingSyntheticDesktop', 'Loading synthetic desktop…')}</div>;
+    if (error && !surface) return <div className="sk-gui__banner sk-gui__banner--error">{error}</div>;
+    if (!surface) return <div className="sk-gui__loading">{t('gui.syntheticDesktop.loadingSyntheticDesktop', 'Loading synthetic desktop…')}</div>;
 
-    return (
-        <div className="sk-synth">
-            <div className="sk-synth__wallpaper">
-                <div className="sk-synth__hostname">{data.hostname || 'host'}</div>
-                <div className="sk-synth__windows">
-                    {data.windows?.map(w => <SynthWindow key={w.id} win={w} />)}
-                </div>
-            </div>
-
-            <div className="sk-synth__taskbar">
-                <span className="sk-synth__start">≡</span>
-                {data.taskbar?.map(t => (
-                    <span key={t.id} className="sk-synth__task" title={t.name}>
-                        {t.name}
-                    </span>
-                ))}
-                <span className="sk-synth__clock">
-                    {formatTime(new Date(), { seconds: true })}
-                </span>
-            </div>
-        </div>
-    );
-}
-
-function SynthWindow({ win }) {
-    return (
-        <div className="sk-synth__window">
-            <div className="sk-synth__titlebar">
-                <span className="sk-synth__title">{win.title}</span>
-                <span className="sk-synth__controls">— □ ×</span>
-            </div>
-            <div className="sk-synth__body">
-                <WindowBody body={win.body} />
-            </div>
-        </div>
-    );
-}
-
-function WindowBody({ body }) {
-    if (Array.isArray(body)) {
-        return (
-            <ul className="sk-synth__list">
-                {body.map((row, i) => (
-                    <li key={i}>
-                        <span>{row.name}</span>
-                        <span>{row.cpu != null ? `${row.cpu.toFixed?.(1) ?? row.cpu}% cpu` : ''}</span>
-                        <span>{row.mem != null ? `${row.mem.toFixed?.(1) ?? row.mem}% mem` : ''}</span>
-                    </li>
-                ))}
-            </ul>
-        );
-    }
-    if (body && typeof body === 'object') {
-        return (
-            <dl className="sk-synth__kv">
-                {Object.entries(body).map(([k, v]) => (
-                    <React.Fragment key={k}>
-                        <dt>{k}</dt>
-                        <dd>{String(v)}</dd>
-                    </React.Fragment>
-                ))}
-            </dl>
-        );
-    }
-    return <div>{String(body ?? '')}</div>;
+    return <SurfaceView surface={surface} onAction={onAction} />;
 }

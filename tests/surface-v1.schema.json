@@ -1,0 +1,1274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jhd3197/vela-contracts/surface-v1.schema.json",
+  "title": "Vela surface v1",
+  "description": "A screen described as data: a tree of host-drawn components such as panels, stats, tables and small desktops. The producer sends JSON; the host draws it with its own components, so no producer code ever runs in the viewer. See docs/SURFACES.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "surface",
+    "title",
+    "root"
+  ],
+  "properties": {
+    "surface": {
+      "const": 1,
+      "description": "Surface format version. A host that does not know a version shows that it cannot draw it rather than guessing."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80
+    },
+    "subtitle": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "icon": {
+      "$ref": "#/$defs/icon"
+    },
+    "lang": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+      "description": "The language the text is written in. Producers localize their own text; hosts localize only formatted values."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "expiresAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "After this the host marks the surface stale."
+    },
+    "refresh": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "every"
+      ],
+      "properties": {
+        "every": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 3600,
+          "description": "Seconds. A host may poll less often, never more."
+        }
+      }
+    },
+    "actions": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "$ref": "#/$defs/action"
+      }
+    },
+    "root": {
+      "$ref": "#/$defs/node"
+    }
+  },
+  "$defs": {
+    "tone": {
+      "enum": [
+        "neutral",
+        "good",
+        "warn",
+        "bad",
+        "info"
+      ],
+      "description": "Meaning, not colour. The host picks the colours for its theme."
+    },
+    "icon": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "maxLength": 40,
+      "description": "A Lucide icon name. A host that does not know the name draws its generic icon; nothing is fetched."
+    },
+    "node": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "stack",
+            "grid",
+            "panel",
+            "desktop",
+            "text",
+            "stat",
+            "progress",
+            "list",
+            "keyvalue",
+            "chart",
+            "table",
+            "badge",
+            "button",
+            "image",
+            "divider",
+            "empty"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "stack"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/stack"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "grid"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/grid"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "panel"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/panel"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "desktop"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/desktop"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "text"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/text"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "stat"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/stat"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "progress"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/progress"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "list"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/list"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "keyvalue"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/keyvalue"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "chart"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/chart"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "table"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/table"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "badge"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/badge"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "button"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/button"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "image"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/image"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "divider"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/divider"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "empty"
+              }
+            }
+          },
+          "then": {
+            "$ref": "#/$defs/empty"
+          }
+        }
+      ]
+    },
+    "stack": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "children"
+      ],
+      "properties": {
+        "type": {
+          "const": "stack"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "direction": {
+          "enum": [
+            "column",
+            "row"
+          ],
+          "default": "column"
+        },
+        "gap": {
+          "enum": [
+            "none",
+            "s",
+            "m",
+            "l"
+          ],
+          "default": "m"
+        },
+        "children": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "description": "Children one after another. A row wraps on a narrow screen."
+    },
+    "grid": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "children"
+      ],
+      "properties": {
+        "type": {
+          "const": "grid"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "default": 2
+        },
+        "children": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "description": "Equal columns. Collapses to one column on a narrow screen; a child's `span` says how many it takes."
+    },
+    "panel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "children"
+      ],
+      "properties": {
+        "type": {
+          "const": "panel"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        },
+        "children": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "description": "A titled card."
+    },
+    "desktop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "windows"
+      ],
+      "properties": {
+        "type": {
+          "const": "desktop"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "wallpaper": {
+          "enum": [
+            "plain",
+            "dusk",
+            "dawn",
+            "grid",
+            "ocean",
+            "forest"
+          ],
+          "default": "plain",
+          "description": "A named preset the host draws. Never an image address."
+        },
+        "windows": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/window"
+          }
+        },
+        "dock": {
+          "type": "array",
+          "maxItems": 24,
+          "items": {
+            "$ref": "#/$defs/dockItem"
+          }
+        }
+      },
+      "description": "A small desktop: windows on a wallpaper with a dock. The host lays windows out and may let the viewer move them; positions are the viewer's, not the surface's."
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "title",
+        "children"
+      ],
+      "properties": {
+        "type": {
+          "const": "window"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        },
+        "size": {
+          "enum": [
+            "s",
+            "m",
+            "l",
+            "wide",
+            "tall"
+          ],
+          "default": "m"
+        },
+        "minimized": {
+          "type": "boolean",
+          "default": false
+        },
+        "children": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "$ref": "#/$defs/node"
+          }
+        }
+      },
+      "description": "One window. Only valid inside a desktop's `windows`."
+    },
+    "dockItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        },
+        "badge": {
+          "type": "string",
+          "maxLength": 3
+        },
+        "window": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "The `id` of a window in the same desktop to bring forward."
+        }
+      }
+    },
+    "text": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "value"
+      ],
+      "properties": {
+        "type": {
+          "const": "text"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "value": {
+          "type": "string",
+          "maxLength": 2000
+        },
+        "style": {
+          "enum": [
+            "body",
+            "title",
+            "caption",
+            "mono"
+          ],
+          "default": "body"
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        }
+      },
+      "description": "Plain text. Never markup."
+    },
+    "stat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "value"
+      ],
+      "properties": {
+        "type": {
+          "const": "stat"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string",
+              "maxLength": 200
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "format": {
+          "enum": [
+            "text",
+            "number",
+            "percent",
+            "bytes",
+            "duration",
+            "time"
+          ],
+          "description": "How the host formats a raw value for the viewer's locale. `percent` is 0-100, `bytes` a byte count, `duration` seconds, `time` an ISO 8601 timestamp."
+        },
+        "unit": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "delta": {
+          "type": "string",
+          "maxLength": 20
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        }
+      },
+      "description": "One number that matters, with its unit and a short caption."
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "value"
+      ],
+      "properties": {
+        "type": {
+          "const": "progress"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        }
+      },
+      "description": "A labelled bar, 0-100."
+    },
+    "list": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "rows"
+      ],
+      "properties": {
+        "type": {
+          "const": "list"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "rows": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+                "maxLength": 64
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "detail": {
+                "type": "string",
+                "maxLength": 200
+              },
+              "icon": {
+                "$ref": "#/$defs/icon"
+              },
+              "tone": {
+                "$ref": "#/$defs/tone"
+              },
+              "badge": {
+                "type": "string",
+                "maxLength": 20
+              },
+              "progress": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        }
+      },
+      "description": "Rows of label and detail, each with an optional icon, badge or bar."
+    },
+    "keyvalue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "rows"
+      ],
+      "properties": {
+        "type": {
+          "const": "keyvalue"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "rows": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "value"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "maxLength": 80
+              },
+              "value": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              },
+              "format": {
+                "enum": [
+                  "text",
+                  "number",
+                  "percent",
+                  "bytes",
+                  "duration",
+                  "time"
+                ],
+                "description": "How the host formats a raw value for the viewer's locale. `percent` is 0-100, `bytes` a byte count, `duration` seconds, `time` an ISO 8601 timestamp."
+              }
+            }
+          }
+        }
+      },
+      "description": "Label left, value right."
+    },
+    "chart": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "series"
+      ],
+      "properties": {
+        "type": {
+          "const": "chart"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "kind": {
+          "enum": [
+            "bars",
+            "line"
+          ],
+          "default": "bars"
+        },
+        "series": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 240,
+          "items": {
+            "type": "number"
+          }
+        },
+        "domain": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "number"
+          },
+          "description": "[min, max] the series is read against. Without one the host scales to the series."
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "caption": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        }
+      },
+      "description": "One series over time. Oldest first."
+    },
+    "table": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "columns",
+        "rows"
+      ],
+      "properties": {
+        "type": {
+          "const": "table"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "key",
+              "label"
+            ],
+            "properties": {
+              "key": {
+                "type": "string",
+                "pattern": "^[a-z][a-zA-Z0-9_]{0,31}$"
+              },
+              "label": {
+                "type": "string",
+                "maxLength": 40
+              },
+              "align": {
+                "enum": [
+                  "start",
+                  "end",
+                  "center"
+                ]
+              },
+              "format": {
+                "enum": [
+                  "text",
+                  "number",
+                  "percent",
+                  "bytes",
+                  "duration",
+                  "time"
+                ],
+                "description": "How the host formats a raw value for the viewer's locale. `percent` is 0-100, `bytes` a byte count, `duration` seconds, `time` an ISO 8601 timestamp."
+              }
+            }
+          }
+        },
+        "rows": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "propertyNames": {
+              "pattern": "^[a-z][a-zA-Z0-9_]{0,31}$"
+            },
+            "maxProperties": 12,
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 500
+                },
+                {
+                  "type": [
+                    "number",
+                    "boolean",
+                    "null"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      "description": "Rows keyed by column `key`. Cells hold raw values; the column's `format` says how to show them."
+    },
+    "badge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "label"
+      ],
+      "properties": {
+        "type": {
+          "const": "badge"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        }
+      },
+      "description": "A short status word."
+    },
+    "button": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "label",
+        "action"
+      ],
+      "properties": {
+        "type": {
+          "const": "button"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "label": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "action": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 40,
+          "description": "The `id` of an action declared in the surface's `actions`. A host refuses an undeclared one."
+        },
+        "input": {
+          "type": "object",
+          "maxProperties": 8,
+          "propertyNames": {
+            "pattern": "^[a-z][a-zA-Z0-9_]{0,31}$"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": [
+                  "number",
+                  "boolean"
+                ]
+              }
+            ]
+          },
+          "description": "Flat values sent with the action, for example which service to restart."
+        },
+        "tone": {
+          "$ref": "#/$defs/tone"
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        }
+      },
+      "description": "Asks the host to run a declared action. The host decides whether to ask the viewer first; the surface cannot skip that."
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "src",
+        "alt"
+      ],
+      "properties": {
+        "type": {
+          "const": "image"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "src": {
+          "type": "string",
+          "maxLength": 900000,
+          "pattern": "^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$",
+          "description": "Inline PNG, JPEG or WebP only. A surface never makes the host fetch an address."
+        },
+        "alt": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "fit": {
+          "enum": [
+            "contain",
+            "cover"
+          ],
+          "default": "contain"
+        }
+      },
+      "description": "A picture carried in the surface, such as a screen capture."
+    },
+    "divider": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "divider"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        }
+      },
+      "description": "A rule between siblings."
+    },
+    "empty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "message"
+      ],
+      "properties": {
+        "type": {
+          "const": "empty"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 64,
+          "description": "Stable key within the surface. Lets a host keep state (a scrolled table, a moved window) across refreshes."
+        },
+        "span": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "description": "Columns taken inside a grid. Ignored elsewhere."
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 200
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        }
+      },
+      "description": "What to show when there is nothing to show."
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+          "maxLength": 40
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 60
+        },
+        "confirm": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "A question the host asks before running it. A host may ask even without one."
+        },
+        "danger": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}

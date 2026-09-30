@@ -38,20 +38,33 @@ export default function ServerGui({ api, serverId }) {
     const [caps, setCaps] = useState(null);
     const [error, setError] = useState(null);
 
-    const baseUrl = `/api/v1/server-gui/${serverId}`;
+    const baseUrl = `/server-gui/${serverId}`;
 
     // Persist prefs whenever any of them changes.
     useEffect(() => {
         savePrefs({ mode, intervalMs, scale, quality });
     }, [mode, intervalMs, scale, quality]);
 
-    const fetchJson = useCallback(async (path) => {
+    // Paths are relative to /api/v1: the panel's api.request prefixes its own
+    // base (which also carries a Cloud relay prefix when there is one).
+    const fetchJson = useCallback(async (path, options = {}) => {
         if (api && typeof api.request === 'function') {
-            return api.request(path);
+            return api.request(path, options);
         }
         const token = localStorage.getItem('access_token');
-        const r = await fetch(path, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { body, ...rest } = options;
+        const r = await fetch(`/api/v1${path}`, {
+            ...rest,
+            headers: {
+                ...(body ? { 'Content-Type': 'application/json' } : {}),
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            ...(body ? { body: JSON.stringify(body) } : {}),
+        });
+        if (!r.ok) {
+            const detail = await r.json().catch(() => ({}));
+            throw new Error(detail.error || `HTTP ${r.status}`);
+        }
         return r.json();
     }, [api]);
 
@@ -107,7 +120,6 @@ export default function ServerGui({ api, serverId }) {
 
             {effectiveMode === MODES.SYNTHETIC && (
                 <SyntheticDesktop
-                    api={api}
                     serverId={serverId}
                     fetchJson={fetchJson}
                 />

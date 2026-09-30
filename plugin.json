@@ -2,7 +2,7 @@
   "name": "serverkit-gui",
   "display_name": "ServerKit Agent GUI (Beta)",
   "version": "0.1.0-beta.1",
-  "description": "Agent-powered desktop view for managed servers. Streams live Windows/Linux screenshots when available, with a synthetic desktop fallback for headless hosts.",
+  "description": "Agent-powered desktop view for managed servers. Streams live Windows/Linux screenshots when available; otherwise describes the server as a surface-v1 desktop of its system, services, containers, processes and storage.",
   "author": "Juan Denis",
   "homepage": "https://github.com/jhd3197/serverkit-gui",
   "repository": "https://github.com/jhd3197/serverkit-gui",
@@ -16,14 +16,24 @@
     "gui:screenshot",
     "gui:capabilities",
     "system:info",
-    "system:processes"
+    "system:processes",
+    "system:metrics",
+    "docker:container:list",
+    "docker:container:restart",
+    "systemd:list_units",
+    "systemd:restart"
   ],
   "minimum_agent_version": "0.4.0",
   "permissions": [
     "agent.command:gui:screenshot",
     "agent.command:gui:capabilities",
     "agent.command:system:info",
-    "agent.command:system:processes"
+    "agent.command:system:processes",
+    "agent.command:system:metrics",
+    "agent.command:docker:container:list",
+    "agent.command:docker:container:restart",
+    "agent.command:systemd:list_units",
+    "agent.command:systemd:restart"
   ],
   "contributions": {
     "widgets": [

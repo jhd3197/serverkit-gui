@@ -1,17 +1,21 @@
 """ServerKit Agent GUI plugin — panel-side blueprint.
 
-Acts as a thin proxy between the frontend and the agent's gui:* actions.
-No frame data is stored; everything is forwarded through plugins_sdk.agents,
+Proxies the agent's gui:* actions for the live screen, and describes the
+server as a surface-v1 document for hosts without one. No frame data is stored; everything is forwarded through plugins_sdk.agents,
 which checks this plugin declared ``agent.command:<action>`` before dispatching
 and turns a failed command into an exception carrying the reason.
 """
+from collections import deque
+
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 
-from app.middleware.rbac import get_current_user
+from app.middleware.rbac import developer_required, get_current_user
 from app.plugins_sdk import agents, logger
 from app.plugins_sdk.permissions import PermissionDenied
 from app.models.server import Server
+
+from .surface import ACTIONS, CONTAINER_REF, SERVICE_UNIT, build_server_surface
 
 gui_bp = Blueprint("server_gui", __name__)
 log = logger(__name__)
@@ -122,13 +126,39 @@ def frame(server_id):
     return jsonify(data)
 
 
-@gui_bp.route("/<server_id>/synthetic", methods=["GET"])
-@jwt_required()
-def synthetic(server_id):
-    """Return data the frontend uses to render the headless 'fake desktop'.
+def _best_effort(server_id, user_id, action, params, default):
+    """Ask the agent, but never fail the page over the answer.
 
-    No new agent action — we reuse data the agent already exposes via
-    existing actions. Cheap and always available.
+    The surface renders *something* for any host, so an agent that won't
+    answer (no Docker, no systemd, older build) leaves its section out rather
+    than erroring. A permission this plugin hasn't been granted lands in the
+    same place deliberately: an install whose stored manifest predates these
+    actions keeps working instead of 500-ing, and the log line says why.
+    """
+    try:
+        return _fleet().run(server_id, action, params, timeout=5.0,
+                            user_id=user_id)
+    except PermissionDenied as exc:
+        log.warning('%s: %s — update the extension to restore full '
+                    'desktop detail', PLUGIN_SLUG, exc)
+        return default
+    except agents.CommandError:
+        return default
+
+
+#: Recent CPU readings per server, for the System window's chart. In-process
+#: and best effort: a restart or a second worker just starts a new line.
+_cpu_history: dict[str, deque] = {}
+
+
+@gui_bp.route("/<server_id>/surface", methods=["GET"])
+@jwt_required()
+def server_surface(server_id):
+    """The server as a surface-v1 document (see backend/surface.py).
+
+    No new agent action: this reuses what the agent already exposes. It is
+    what the panel draws for a host without a display, and a format any other
+    host (Vela) can draw too.
     """
     user = get_current_user()
     server, err = _server_or_404(server_id)
@@ -136,78 +166,67 @@ def synthetic(server_id):
         return err
 
     if server.status != "online":
-        return jsonify({
-            "windows": [],
-            "taskbar": [],
-            "drives": [],
-            "offline": True,
-        })
+        return jsonify(build_server_surface(server_name=server.name, offline=True))
 
     user_id = user.id if user else None
+    ask = lambda action, params, default: _best_effort(server_id, user_id, action, params, default)  # noqa: E731
 
-    def _best_effort(action, params, default):
-        """Ask the agent, but never fail the page over the answer.
+    metrics = ask("system:metrics", {}, {})
+    if isinstance(metrics, dict) and isinstance(metrics.get("cpu_percent"), (int, float)):
+        _cpu_history.setdefault(server_id, deque(maxlen=60)).append(metrics["cpu_percent"])
+    units = ask("systemd:list_units", {"type": "service"}, {})
 
-        This endpoint renders *something* for a host with no display, so an
-        agent that won't answer degrades to an empty panel rather than an
-        error. A permission this plugin hasn't been granted lands in the same
-        place deliberately: an install whose stored manifest predates these
-        actions keeps working instead of 500-ing, and the log line says why.
-        """
-        try:
-            return _fleet().run(server_id, action, params, timeout=5.0,
-                                user_id=user_id)
-        except PermissionDenied as exc:
-            log.warning('%s: %s — update the extension to restore full '
-                        'synthetic detail', PLUGIN_SLUG, exc)
-            return default
-        except agents.CommandError:
-            return default
+    return jsonify(build_server_surface(
+        server_name=server.name,
+        info=ask("system:info", {}, {}),
+        metrics=metrics,
+        processes=ask("system:processes", {}, []),
+        containers=ask("docker:container:list", {"all": True}, []),
+        units=units.get("units") if isinstance(units, dict) else [],
+        cpu_history=list(_cpu_history.get(server_id, ())),
+        can_act=bool(user and user.is_active and user.is_developer),
+    ))
 
-    info = _best_effort("system:info", {}, {})
-    plist = _best_effort("system:processes", {"limit": 12}, [])
-    if not isinstance(info, dict):
-        info = {}
-    if not isinstance(plist, list):
-        plist = []
 
-    windows = [
-        {
-            "id": "system",
-            "title": f"System — {info.get('hostname', server.name)}",
-            "icon": "monitor",
-            "body": {
-                "OS": f"{info.get('os', 'Unknown')} {info.get('os_version', '')}".strip(),
-                "Arch": info.get("architecture", "?"),
-                "CPU": info.get("cpu_model", "?"),
-                "Cores": info.get("cpu_cores", "?"),
-            },
-        },
-        {
-            "id": "processes",
-            "title": "Top processes",
-            "icon": "activity",
-            "body": [
-                {"name": p.get("name"), "cpu": p.get("cpu_percent"), "mem": p.get("memory_percent")}
-                for p in plist[:8]
-            ],
-        },
-    ]
+@gui_bp.route("/<server_id>/actions/<action_id>", methods=["POST"])
+@developer_required
+def run_action(server_id, action_id):
+    """Run one of the surface's declared actions.
 
-    taskbar = [
-        {"id": p.get("pid"), "name": p.get("name", "?")}
-        for p in plist[:6]
-    ]
+    The surface only says which action and on what; the input is validated
+    again here and mapped to exactly one agent command. Developer role, same
+    as the panel's own container routes.
+    """
+    user = get_current_user()
+    server, err = _server_or_404(server_id)
+    if err:
+        return err
+    if action_id not in ACTIONS:
+        return jsonify({"error": "Unknown action", "code": "UNKNOWN_ACTION"}), 404
+    if server.status != "online":
+        return jsonify({"error": "agent offline", "code": "AGENT_OFFLINE"}), 503
 
-    drives = [
-        {"path": d.get("mountpoint"), "used": d.get("used_percent")}
-        for d in (info.get("disks") or [])
-    ]
+    body = request.get_json(silent=True) or {}
+    params = body.get("input") if isinstance(body.get("input"), dict) else {}
 
-    return jsonify({
-        "windows": windows,
-        "taskbar": taskbar,
-        "drives": drives,
-        "hostname": info.get("hostname") or server.name,
-        "offline": False,
-    })
+    if action_id == "restart-container":
+        ref = params.get("container")
+        if not isinstance(ref, str) or not CONTAINER_REF.match(ref):
+            return jsonify({"error": "container is required", "code": "INVALID_INPUT"}), 400
+        command, command_params = "docker:container:restart", {"id": ref}
+    else:  # restart-service
+        unit = params.get("unit")
+        if not isinstance(unit, str) or not SERVICE_UNIT.match(unit):
+            return jsonify({"error": "unit must be a .service unit", "code": "INVALID_INPUT"}), 400
+        command, command_params = "systemd:restart", {"unit": unit}
+
+    log.info('%s: %s on %s by user %s (%s)', PLUGIN_SLUG, action_id, server_id,
+             user.id if user else None, command_params)
+    try:
+        _fleet().run(server_id, command, command_params, timeout=30.0,
+                     user_id=user.id if user else None)
+    except PermissionDenied as exc:
+        return jsonify({"error": str(exc), "code": "PERMISSION_DENIED"}), 403
+    except agents.CommandError as exc:
+        return jsonify({"error": str(exc), "code": exc.code or "ACTION_FAILED"}), 502
+    return jsonify({"ok": True})

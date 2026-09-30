@@ -34,12 +34,27 @@ The extension exposes two co-equal viewing modes per server:
 | Mode         | When it works                              | What you see                                   |
 |--------------|--------------------------------------------|------------------------------------------------|
 | `screenshot` | Host has a display server (Win session, X11, Wayland) | Live remote desktop, ~1.5 fps |
-| `synthetic`  | Always                                     | OS-style UI rendered from agent data — services as windows, processes as a taskbar, mounts as drives |
+| `synthetic`  | Always                                     | A desktop drawn from agent data: system, services, containers, top processes and storage as windows, with a dock |
 | `auto`       | Default                                    | Prefers `screenshot`, falls back to `synthetic` |
 
 `synthetic` is **not** just a fallback. On a headless production box it's the
 primary view: a glanceable, OS-themed dashboard that turns "this server is a
 black box" into "this server has a face."
+
+## Surfaces
+
+The synthetic desktop is a [surface-v1](https://github.com/jhd3197/vela-contracts/blob/main/docs/SURFACES.md)
+document: JSON describing panels, stats, tables and a desktop of windows,
+which the frontend draws with its own components. `backend/surface.py` builds
+it from agent data; `GET /api/v1/server-gui/<server_id>/surface` serves it.
+
+Because the format is shared, the same document can be drawn by any host that
+speaks it, Vela included. See [docs/VELA.md](docs/VELA.md).
+
+Buttons on the desktop (restart a failed service, restart a running container)
+appear only for developer-role users, ask before running, and go through
+`POST /api/v1/server-gui/<server_id>/actions/<action_id>`, which validates the
+input again and maps it to exactly one agent command.
 
 ## Install
 
@@ -66,7 +81,8 @@ picks up `frontend/src/plugins/serverkit-gui/`.
 
 Agents **≥ v0.4.0** ship the `gui:*` actions natively — no further work needed.
 On older agents the extension still loads: `gui:capabilities` returns "none"
-and the synthetic mode takes over.
+and the synthetic mode takes over. Sections whose agent action is missing
+(no Docker, no systemd) are left out of the desktop.
 
 The agent SDK lives at `ServerKit/agent/internal/gui/`. If you're hacking the
 agent and want to add e.g. multi-monitor capture or input proxying, that's the
@@ -108,7 +124,9 @@ Per-server, controlled from the toolbar of the Desktop view:
 - [x] Panel blueprint
 - [x] Frontend streaming component + synthetic desktop
 - [x] Agent SDK landed in main ServerKit (`agent/internal/gui/`)
+- [x] Synthetic desktop as a surface-v1 document (services, containers, storage)
 - [ ] Per-server mode toggle (screenshot / synthetic / auto) — in progress
+- [ ] Serve surfaces to Vela (see docs/VELA.md)
 - [ ] Input proxying (mouse / keyboard) — Phase 2
 - [ ] Native fast-path for Windows (replace PowerShell shell-out) — Phase 2
 - [ ] WebRTC for full RDP-grade interactivity — Phase 3

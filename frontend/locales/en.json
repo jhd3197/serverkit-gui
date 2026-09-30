@@ -25,6 +25,15 @@
         },
         "syntheticDesktop": {
             "loadingSyntheticDesktop": "Loading synthetic desktop…"
+        },
+        "surface": {
+            "unsupportedVersion": "This view uses a format this version cannot draw.",
+            "cannotShowPart": "Cannot show this part.",
+            "minimize": "Minimize",
+            "confirmAction": "Run “{{title}}”?",
+            "cancel": "Cancel",
+            "working": "Working…",
+            "done": "Done"
         }
     }
 }
