@@ -8,9 +8,9 @@ and turns a failed command into an exception carrying the reason.
 from collections import deque
 
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import jwt_required
 
-from app.middleware.rbac import developer_required, get_current_user
+from app.middleware.rbac import auth_required, developer_required, get_current_user
+from app.middleware.api_scope_middleware import require_scope
 from app.plugins_sdk import agents, logger
 from app.plugins_sdk.permissions import PermissionDenied
 from app.models.server import Server
@@ -38,9 +38,12 @@ def _server_or_404(server_id: str):
 
 
 @gui_bp.route("/<server_id>/capabilities", methods=["GET"])
-@jwt_required()
+@auth_required()
+@require_scope("servers:read")
 def capabilities(server_id):
-    """Ask the agent what it can capture (display server, resolution, fps cap)."""
+    """Ask the agent what it can capture (display server, resolution, fps cap).
+
+    API-key capable on purpose: a Vela host polls this with a scoped key."""
     user = get_current_user()
     server, err = _server_or_404(server_id)
     if err:
@@ -75,9 +78,10 @@ def capabilities(server_id):
 
 
 @gui_bp.route("/<server_id>/frame", methods=["GET"])
-@jwt_required()
+@auth_required()
+@require_scope("servers:read")
 def frame(server_id):
-    """Capture and return a single frame.
+    """Capture and return a single frame. API-key capable (see capabilities).
 
     Query params:
       scale   float 0.1..1.0   server-side downscale before encoding
@@ -152,7 +156,8 @@ _cpu_history: dict[str, deque] = {}
 
 
 @gui_bp.route("/<server_id>/surface", methods=["GET"])
-@jwt_required()
+@auth_required()
+@require_scope("servers:read")
 def server_surface(server_id):
     """The server as a surface-v1 document (see backend/surface.py).
 

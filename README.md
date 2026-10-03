@@ -112,8 +112,9 @@ Per-server, controlled from the toolbar of the Desktop view:
 ## Security
 
 - Frames are not persisted by the panel — they pass through memory only.
-- The extension's routes inherit ServerKit's JWT auth and the existing
-  `agent.command:*` permission model.
+- The extension's read routes accept ServerKit JWT auth or an `X-API-Key`
+  with the `servers:read` scope (so a Vela host can poll them), and reuse the
+  existing `agent.command:*` permission model. Actions stay developer-only.
 - On Windows, capture relies on an active user session. Hosts with no
   interactive login report `capability=none` and degrade to synthetic mode.
 
